@@ -19,7 +19,9 @@
       "Bash(psql:*)",
       "Bash(pkill -f \"nodemon.*server\")",
       "Bash(pkill -f \"ts-node src/server\")",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(git remote:*)",
+      "Bash(./node_modules/.bin/next dev:*)"
     ]
   }
 }

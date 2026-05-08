@@ -27,7 +27,7 @@ export default function LinkStatsPage() {
       setStats(data);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load stats');
+      setError(err.message || 'Failed to load stats');
       console.error(err);
     } finally {
       setLoading(false);

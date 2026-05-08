@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { Worker } from 'bullmq';
 import pool from '../config/database';
 import redis from '../config/redis';
