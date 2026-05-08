@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx:*)",
+      "Bash(cd:*)",
+      "Bash(npm run:*)",
+      "Bash(node -e \"require\\(''''nanoid''''\\)\")",
+      "Bash(node:*)",
+      "Bash(curl -s http://localhost:3001/api/links)",
+      "Bash(curl:*)",
+      "Bash(cat /Users/lindediannao/Documents/project/面试项目/LinkTrack/frontend/.env*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(python3 -c \"import socket; print\\(socket.getservbyname\\(''''redwood-broker''''\\) if hasattr\\(socket,''''getservbyname''''\\) else ''''N/A''''\\)\")",
+      "Bash(getent services:*)",
+      "Bash(ps:*)",
+      "Bash(kill:*)",
+      "Bash(createdb linktrack:*)",
+      "Bash(psql:*)",
+      "Bash(pkill -f \"nodemon.*server\")",
+      "Bash(pkill -f \"ts-node src/server\")",
+      "Bash(npm uninstall:*)"
+    ]
+  }
+}
