@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import linksRouter from './routes/links';
 import redirectRouter from './routes/redirect';
+import analyticsRouter from './routes/analytics';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,7 +19,8 @@ app.use(cors({
 app.use(express.json());
 
 // Routes
-app.use('/api/links', linksRouter);
+app.use('/api/v1/links', linksRouter);
+app.use('/api/v1/analytics', analyticsRouter);
 app.use('/r', redirectRouter);
 
 // Health check

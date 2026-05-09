@@ -2,33 +2,50 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getLinkStats, LinkStats } from '@/lib/api';
+import { getLinkStats, getLinkAnalytics, getLinkTrend, LinkStats, AnalyticsData, TrendData } from '@/lib/api';
 import Link from 'next/link';
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
 export default function LinkStatsPage() {
   const params = useParams();
   const router = useRouter();
-  const code = params.code as string;
+  const code = (Array.isArray(params.code) ? params.code[0] : params.code) as string;
 
   const [stats, setStats] = useState<LinkStats | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [trend, setTrend] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (code) {
-      fetchStats();
+      const controller = new AbortController();
+      fetchStats(controller);
+      return () => controller.abort();
     }
   }, [code]);
 
-  const fetchStats = async () => {
+  const fetchStats = async (controller: AbortController) => {
     try {
       setLoading(true);
-      const data = await getLinkStats(code);
-      setStats(data);
-      setError('');
+      const [statsData, analyticsData, trendData] = await Promise.all([
+        getLinkStats(code),
+        getLinkAnalytics(code),
+        getLinkTrend(code, 7),
+      ]);
+      if (!controller.signal.aborted) {
+        setStats(statsData);
+        setAnalytics(analyticsData);
+        setTrend(trendData);
+        setError('');
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load stats');
-      console.error(err);
+      if (!controller.signal.aborted) {
+        setError(err.message || 'Failed to load stats');
+        console.error(err);
+      }
     } finally {
       setLoading(false);
     }
@@ -150,7 +167,154 @@ export default function LinkStatsPage() {
             </div>
           </div>
         </div>
+
+        {analytics && (
+          <>
+            {/* Click Trend Chart */}
+            {trend.length > 0 && (
+              <div className="bg-white p-8 rounded-lg shadow-md mt-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Click Trend (Last 7 Days)
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={trend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="time"
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit' })}
+                    />
+                    <YAxis />
+                    <Tooltip
+                      labelFormatter={(value) => new Date(value).toLocaleString('zh-CN')}
+                    />
+                    <Area type="monotone" dataKey="clicks" stroke="#3b82f6" fill="#93c5fd" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Traffic Sources */}
+            {analytics.referers.length > 0 && (
+              <div className="bg-white p-8 rounded-lg shadow-md mt-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Traffic Sources
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={analytics.referers}
+                      dataKey="count"
+                      nameKey="source"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label
+                    >
+                      {analytics.referers.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Device Types */}
+            {analytics.devices.length > 0 && (
+              <div className="bg-white p-8 rounded-lg shadow-md mt-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Device Types
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={analytics.devices}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="type" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Operating Systems */}
+            {analytics.os.length > 0 && (
+              <div className="bg-white p-8 rounded-lg shadow-md mt-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Operating Systems
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={analytics.os}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#10b981" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Browsers */}
+            {analytics.browsers.length > 0 && (
+              <div className="bg-white p-8 rounded-lg shadow-md mt-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Browsers
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={analytics.browsers}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#f59e0b" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Geographic Distribution */}
+            {(analytics.countries.length > 0 || analytics.cities.length > 0) && (
+              <div className="bg-white p-8 rounded-lg shadow-md mt-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Geographic Distribution
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {analytics.countries.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-4">Countries</h3>
+                      <div className="space-y-2">
+                        {analytics.countries.map((country, idx) => (
+                          <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span className="text-gray-700">{country.name}</span>
+                            <span className="font-semibold text-blue-600">{country.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {analytics.cities.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-4">Cities</h3>
+                      <div className="space-y-2">
+                        {analytics.cities.map((city, idx) => (
+                          <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span className="text-gray-700">{city.name}</span>
+                            <span className="font-semibold text-blue-600">{city.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </main>
   );
 }
+

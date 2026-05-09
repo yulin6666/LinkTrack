@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import linkService from '../services/linkService';
+import rateLimitService from '../services/rateLimitService';
 
 const router = Router();
 
@@ -10,6 +11,18 @@ router.post('/', async (req: Request, res: Response) => {
 
     if (!originalUrl) {
       return res.status(400).json({ error: 'originalUrl is required' });
+    }
+
+    // Rate limit: 10 links per minute per IP
+    const ip = req.ip || 'unknown';
+    const allowed = await rateLimitService.checkSimpleLimit(
+      `rate:create:${ip}`,
+      10,
+      60
+    );
+
+    if (!allowed) {
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
     }
 
     const link = await linkService.createShortLink(originalUrl);
@@ -30,19 +43,28 @@ router.post('/', async (req: Request, res: Response) => {
 // Get all links
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const links = await linkService.getAllLinks();
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 20));
+
+    const { links, total } = await linkService.getAllLinks(page, pageSize);
     const baseUrl = process.env.BASE_URL || 'http://localhost:3001';
 
-    const response = links.map(link => ({
-      code: link.code,
-      shortUrl: `${baseUrl}/r/${link.code}`,
-      originalUrl: link.originalUrl,
-      totalClicks: link.totalClicks,
-      lastClickedAt: link.lastClickedAt,
-      createdAt: link.createdAt,
-    }));
-
-    res.json(response);
+    res.json({
+      data: links.map(link => ({
+        code: link.code,
+        shortUrl: `${baseUrl}/r/${link.code}`,
+        originalUrl: link.originalUrl,
+        totalClicks: link.totalClicks,
+        lastClickedAt: link.lastClickedAt,
+        createdAt: link.createdAt,
+      })),
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
   } catch (error: any) {
     console.error('Error fetching links:', error);
     res.status(500).json({ error: 'Failed to fetch links' });

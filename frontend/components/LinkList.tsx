@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getAllLinks, ShortLink } from '@/lib/api';
 import Link from 'next/link';
 
@@ -12,24 +12,46 @@ export default function LinkList({ refresh }: LinkListProps) {
   const [links, setLinks] = useState<ShortLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 20;
+  const prevRefreshRef = useRef(refresh);
 
   useEffect(() => {
-    fetchLinks();
-  }, [refresh]);
+    const controller = new AbortController();
 
-  const fetchLinks = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllLinks();
-      setLinks(data);
-      setError('');
-    } catch (err: any) {
-      setError('Failed to load links');
-      console.error(err);
-    } finally {
-      setLoading(false);
+    // refresh 变化时重置到第1页
+    const isRefreshChange = prevRefreshRef.current !== refresh;
+    const fetchPage = isRefreshChange ? 1 : page;
+    if (isRefreshChange) {
+      prevRefreshRef.current = refresh;
+      setPage(1);
     }
-  };
+
+    const fetchLinks = async () => {
+      try {
+        setLoading(true);
+        const result = await getAllLinks(fetchPage, pageSize);
+        if (!controller.signal.aborted) {
+          setLinks(result.data);
+          setTotalPages(result.pagination.totalPages);
+          setTotal(result.pagination.total);
+          setError('');
+        }
+      } catch (err: any) {
+        if (!controller.signal.aborted) {
+          setError('Failed to load links');
+          console.error(err);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLinks();
+    return () => controller.abort();
+  }, [page, refresh]);
 
   if (loading) {
     return (
@@ -59,7 +81,10 @@ export default function LinkList({ refresh }: LinkListProps) {
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Your Links</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-gray-800">Your Links</h2>
+        <span className="text-sm text-gray-500">{total} links total</span>
+      </div>
 
       <div className="space-y-4">
         {links.map((link) => (
@@ -106,6 +131,31 @@ export default function LinkList({ refresh }: LinkListProps) {
           </div>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <button
+            onClick={() => setPage(p => p - 1)}
+            disabled={page === 1}
+            className="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ← Prev
+          </button>
+
+          <span className="text-sm text-gray-600">
+            {page} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={page === totalPages}
+            className="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+
