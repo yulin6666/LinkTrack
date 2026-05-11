@@ -29,7 +29,18 @@
       "Bash(open:*)",
       "Bash(lsof -ti:3000)",
       "Bash(osascript -e 'tell application \"\"Google Chrome\"\" to execute front window's active tab javascript \"console.log\\(\"\"Checking for errors...\"\"\\); setTimeout\\(\\(\\) => { const errors = window.__REACT_ERROR_OVERLAY_GLOBAL_HOOK__?.renderers || {}; console.log\\(\"\"React errors:\"\", errors\\); }, 1000\\);\" ')",
-      "Bash(osascript:*)"
+      "Bash(osascript:*)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3:*)",
+      "WebSearch",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:support.claude.com)",
+      "WebFetch(domain:9to5google.com)",
+      "WebFetch(domain:www.knightli.com)",
+      "WebFetch(domain:www.sentisight.ai)",
+      "WebFetch(domain:claudelab.net)",
+      "WebFetch(domain:usagebar.com)",
+      "WebFetch(domain:fuelgauge.pro)"
     ]
   }
 }
