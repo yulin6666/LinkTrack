@@ -40,7 +40,8 @@
       "WebFetch(domain:www.sentisight.ai)",
       "WebFetch(domain:claudelab.net)",
       "WebFetch(domain:usagebar.com)",
-      "WebFetch(domain:fuelgauge.pro)"
+      "WebFetch(domain:fuelgauge.pro)",
+      "Bash(npm test:*)"
     ]
   }
 }
